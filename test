@@ -1,0 +1,22 @@
+import Pyro4
+
+class RMIClient:
+    def __init__(self, host, port):
+        self.server = Pyro4.Proxy("PYRO:server@{}:{}".format(host, port))
+
+    def invoke_method(self, method_name, *args):
+        try:
+            method = getattr(self.server, method_name)
+            return method(*args)
+        except Exception as e:
+            print("Error invoking method:", e)
+
+if __name__ == "__main__":
+    host = "localhost"  # Change to your server's host
+    port = 9090         # Change to your Pyro4 daemon port
+
+    client = RMIClient(host, port)
+
+    # Example: Invoke a method with arguments
+    result = client.invoke_method("method_name", arg1, arg2)
+    # Handle the result as needed
