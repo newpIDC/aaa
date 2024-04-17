@@ -1,22 +1,44 @@
 import Pyro4
+import json
 
-class RMIClient:
-    def __init__(self, host, port):
+class RemoteClient:
+    def __init__(self, host, port, prototype):
         self.server = Pyro4.Proxy("PYRO:server@{}:{}".format(host, port))
+        self.prototype = prototype
 
-    def invoke_method(self, method_name, *args):
+    def execute_method(self, method_name, *args):
         try:
-            method = getattr(self.server, method_name)
-            return method(*args)
+            # Convert complex objects to JSON strings before passing them
+            serialized_args = [json.dumps(arg) if isinstance(arg, dict) else arg for arg in args]
+            return self.server.execute_method(method_name, *serialized_args)
         except Exception as e:
             print("Error invoking method:", e)
+
+    def set_variable(self, var_name, value):
+        setattr(self.prototype, var_name, value)
+
+    def get_variable(self, var_name):
+        return getattr(self.prototype, var_name)
 
 if __name__ == "__main__":
     host = "localhost"  # Change to your server's host
     port = 9090         # Change to your Pyro4 daemon port
 
-    client = RMIClient(host, port)
+    # Define the prototype
+    class Prototype:
+        pass
 
-    # Example: Invoke a method with arguments
-    result = client.invoke_method("method_name", arg1, arg2)
-    # Handle the result as needed
+    # Instantiate the prototype
+    prototype = Prototype()
+
+    client = RemoteClient(host, port, prototype)
+
+    # Example: Set a variable dynamically
+    client.set_variable("var_name", "value")
+
+    # Example: Get a variable dynamically
+    print(client.get_variable("var_name"))
+
+    # Example: Execute a method with arguments
+    result = client.execute_method("foo", {"key": "value"}, "string argument")
+    print(result)
